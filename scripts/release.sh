@@ -5,7 +5,7 @@ VERSION="${ATLAS_VERSION:-$(cat VERSION)}"
 export ATLAS_VERSION="$VERSION"
 export ATLAS_ARCHS="arm64 x86_64"
 ./scripts/build.sh
-lipo -verify_arch arm64 x86_64 "build/Application Atlas.app/Contents/MacOS/ApplicationAtlas"
+lipo "build/Application Atlas.app/Contents/MacOS/ApplicationAtlas" -verify_arch arm64 x86_64
 mkdir -p dist
 ARCHIVE="Application-Atlas-${VERSION}-macOS-universal.zip"
 # ditto preserves the bundle's metadata and executable permissions.
