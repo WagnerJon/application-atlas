@@ -1,0 +1,15 @@
+build/
+.DS_Store
+dist/
+.env
+.env.*
+*.p12
+*.p8
+*.mobileprovision
+*.provisionprofile
+# Personal data and exported backups do not belong in the repository.
+applications.json
+map-settings.json
+Attachments/
+Application Atlas Backup*.json
+Application Atlas*.csv
