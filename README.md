@@ -1,8 +1,24 @@
+<p align="center">
+  <img src="Assets/AppIcon.png" alt="Application Atlas — a smiling globe wearing an academic cap" width="144">
+</p>
+
 # Application Atlas
 
 [Source](https://github.com/WagnerJon/application-atlas) · [Downloads](https://github.com/WagnerJon/application-atlas/releases) · [Buy me a coffee](https://buymeacoffee.com/wagnerjon)
 
 A native SwiftUI macOS app for tracking job and PhD applications. Requires macOS 14 or newer.
+
+## A look inside
+
+**See your applications take shape.** The dashboard follows each application from category to interview and outcome in an interactive Sankey.
+
+![Application Atlas dashboard showing four example job and PhD applications flowing through interviews to an offer and a rejection](docs/images/dashboard.png)
+
+**Explore where your next chapter could begin.** The map connects your home to each opportunity, with routes colored by application status.
+
+![Application Atlas map showing status-colored routes from Heidelberg to Berlin, Paris, Zurich, and Cambridge](docs/images/map.png)
+
+*Screenshots use the four fictional applications from the disposable preview, not personal application data.*
 
 ## Download and install
 
