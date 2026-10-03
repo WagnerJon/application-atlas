@@ -18,7 +18,6 @@ A native SwiftUI macOS app for tracking job and PhD applications. Requires macOS
 
 ![Application Atlas map showing status-colored routes from Heidelberg to Berlin, Paris, Zurich, and Cambridge](docs/images/map.png)
 
-*Screenshots use the four fictional applications from the disposable preview, not personal application data.*
 
 ## Download and install
 
