@@ -4,7 +4,7 @@ cd "$(dirname "$0")/.."
 APP="build/Application Atlas.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" build/module-cache
 VERSION="${ATLAS_VERSION:-$(cat VERSION)}"
-BUILD_NUMBER="${ATLAS_BUILD_NUMBER:-8}"
+BUILD_NUMBER="${ATLAS_BUILD_NUMBER:-9}"
 [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Version must be X.Y.Z" >&2; exit 1; }
 [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]] || { echo "Build number must be numeric" >&2; exit 1; }
 ARCHS="${ATLAS_ARCHS:-$(uname -m)}"

@@ -3,6 +3,24 @@ import MapKit
 
 @main struct StorageTests {
     @MainActor static func main() throws {
+        let preferenceName = "atlas-support-test-\(UUID().uuidString)"
+        let preferences = UserDefaults(suiteName: preferenceName)!
+        defer { preferences.removePersistentDomain(forName: preferenceName) }
+        let supportDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(preferenceName)
+        defer { try? FileManager.default.removeItem(at: supportDirectory) }
+        let supportStore = ApplicationStore(directory: supportDirectory, preferences: preferences)
+        var first = Application(); first.role = "Example"; first.status = .interview
+        assert(supportStore.save(first)); assert(!supportStore.showingFirstOfferSupport)
+        first.addStep(.offer, on: Date())
+        assert(supportStore.save(first)); assert(supportStore.showingFirstOfferSupport)
+        supportStore.showingFirstOfferSupport = false
+        assert(supportStore.save(first)); assert(!supportStore.showingFirstOfferSupport)
+        let reopened = ApplicationStore(directory: supportDirectory, preferences: preferences)
+        assert(!reopened.showingFirstOfferSupport)
+        assert(reopened.delete(first))
+        var second = Application(); second.status = .offer
+        assert(reopened.save(second)); assert(!reopened.showingFirstOfferSupport)
+        print("PASS: first-offer reminder appears once and stays dismissed after restart/deletion")
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("atlas-tests-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: root) }
         let store = ApplicationStore(directory: root)

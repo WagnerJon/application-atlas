@@ -22,6 +22,18 @@ import Foundation
         assert(withoutDate.daysAwaitingReply() == nil)
         var replied = application; replied.status = .interview
         assert(replied.daysAwaitingReply() == nil)
+        var tomorrow = Application(); tomorrow.deadline = afterDST
+        var today = Application(); today.deadline = beforeDST
+        var overdue = Application(); overdue.deadline = calendar.date(byAdding: .day, value: -2, to: beforeDST)
+        var older = Application(); older.deadline = calendar.date(byAdding: .day, value: -5, to: beforeDST)
+        assert(tomorrow.daysTillDeadline(asOf: beforeDST, calendar: calendar) == 1)
+        assert(today.daysTillDeadline(asOf: beforeDST, calendar: calendar) == 0)
+        assert(overdue.daysTillDeadline(asOf: beforeDST, calendar: calendar) == -2)
+        assert(Application().daysTillDeadline(asOf: beforeDST, calendar: calendar) == nil)
+        let deadlines = Application.orderedByDeadline([older, tomorrow, Application(), overdue, today], asOf: beforeDST, calendar: calendar)
+        assert(deadlines.map(\.id) == [today.id, tomorrow.id, overdue.id, older.id])
+        assert(Application.orderedByDeadline([today, tomorrow], asOf: afterDST, calendar: calendar).map(\.id) == [tomorrow.id, today.id])
+        print("PASS: deadline filtering, nearest-first ordering, overdue ordering, calendar days and DST")
         let csv = ApplicationCSV.text([application], now: afterDST, calendar: calendar)
         assert(csv.contains("\"Research, \"\"science\"\"\""))
         assert(csv.contains("\"'=1+1\""))

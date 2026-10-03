@@ -46,7 +46,7 @@ Release assets are written to `dist/`. [Maintainer instructions](docs/RELEASING.
 
 [MIT License](LICENSE) · Made with ♥ by Jonas (2026).
 
-If Application Atlas is useful to you, you can [buy me a coffee](https://buymeacoffee.com/wagnerjon). Support is optional; all features are free. The same link is available in **Settings → About & license…** and GitHub's **Sponsor** button.
+If Application Atlas is useful to you, you can [buy me a coffee](https://buymeacoffee.com/wagnerjon). Support is optional; all features are free. A one-time congratulations reminder appears after your first newly recorded offer. Existing offers and restored backups do not trigger it. The same link is available in **Settings → About & license…** and GitHub's **Sponsor** button.
 
 ## Features
 
@@ -71,6 +71,10 @@ The app includes a smiling globe with an academic cap as its Finder, Dock, and s
 Names must be unique, nonempty, and no longer than 40 characters. Removing a used category prompts you to move its applications to another category; documents and journey history are retained. Cancel discards category edits. Keep at least one category. The Sankey shows categories with applications and expands vertically when needed.
 
 Existing databases and older backups load with Job and PhD automatically. The updated database saves categories and applications together, with stable category IDs so renaming does not change application assignments.
+
+## Deadlines
+
+Select **Deadlines** in the sidebar to see only applications with a deadline. Upcoming dates appear closest first (including today); past deadlines follow, most recent first. **Days till deadline** shows “Due today”, days left, or days overdue and refreshes while the app is open. All statuses are included. Search and the status filter work here too; clicking a row opens its details so you can update or remove a deadline.
 
 ## Map
 

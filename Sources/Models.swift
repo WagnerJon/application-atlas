@@ -51,6 +51,20 @@ struct Application: Codable, Identifiable {
         guard status == .sent, let sentDate else { return nil }
         return max(0, calendar.dateComponents([.day], from: calendar.startOfDay(for: sentDate), to: calendar.startOfDay(for: now)).day ?? 0)
     }
+    func daysTillDeadline(asOf now: Date = Date(), calendar: Calendar = .current) -> Int? {
+        guard let deadline else { return nil }
+        return calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: calendar.startOfDay(for: deadline)).day
+    }
+    static func orderedByDeadline(_ applications: [Application], asOf now: Date = Date(), calendar: Calendar = .current) -> [Application] {
+        applications.filter { $0.deadline != nil }.sorted { lhs, rhs in
+            let left = lhs.daysTillDeadline(asOf: now, calendar: calendar)!
+            let right = rhs.daysTillDeadline(asOf: now, calendar: calendar)!
+            if (left < 0) != (right < 0) { return left >= 0 }
+            if left != right { return left < 0 ? left > right : left < right }
+            if lhs.deadline != rhs.deadline { return lhs.deadline! < rhs.deadline! }
+            return lhs.id.uuidString < rhs.id.uuidString
+        }
+    }
     func reached(_ status: ApplicationStatus) -> Bool {
         self.status == status || history.contains { $0.status == status }
     }
@@ -80,11 +94,15 @@ struct Application: Codable, Identifiable {
     @Published private(set) var categories = ApplicationCategory.defaults
     @Published var error: String?
     @Published private(set) var restoreRevision = UUID()
+    @Published var showingFirstOfferSupport = false
+    private let preferences: UserDefaults
+    private let firstOfferKey = "firstOfferSupportShown"
     private(set) var canWrite = true
     let directory: URL
     var database: URL { directory.appendingPathComponent("applications.json") }
     var attachmentDirectory: URL { directory.appendingPathComponent("Attachments", isDirectory: true) }
-    init(directory: URL? = nil) {
+    init(directory: URL? = nil, preferences: UserDefaults = .standard) {
+        self.preferences = preferences
         self.directory = directory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("ApplicationAtlas", isDirectory: true)
         do {
             try FileManager.default.createDirectory(at: attachmentDirectory, withIntermediateDirectories: true)
@@ -92,6 +110,7 @@ struct Application: Codable, Identifiable {
                 let loaded = try ApplicationDatabase.read(Data(contentsOf: database))
                 applications = loaded.applications
                 categories = loaded.categories
+                if applications.contains(where: { $0.reached(.offer) }) { preferences.set(true, forKey: firstOfferKey) }
             }
         } catch { canWrite = false; self.error = "Could not load your data. Existing files have been preserved. \(error.localizedDescription)" }
     }
@@ -111,7 +130,13 @@ struct Application: Codable, Identifiable {
             }
             next.append(updated)
         }
-        return persist(next)
+        let firstOffer = updated.reached(.offer) && !applications.contains(where: { $0.reached(.offer) }) && !preferences.bool(forKey: firstOfferKey)
+        guard persist(next) else { return false }
+        if firstOffer {
+            preferences.set(true, forKey: firstOfferKey)
+            showingFirstOfferSupport = true
+        }
+        return true
     }
     // Build and validate a complete replacement before touching the live directory.
     // The old directory is retained beside it as a recovery copy.
@@ -139,6 +164,8 @@ struct Application: Codable, Identifiable {
         do { try manager.moveItem(at: staging, to: recovery) }
         catch { recoveryURL = staging }
         applications = backup.applications
+        if applications.contains(where: { $0.reached(.offer) }) { preferences.set(true, forKey: firstOfferKey) }
+        showingFirstOfferSupport = false
         categories = backup.resolvedCategories
         canWrite = true
         error = nil

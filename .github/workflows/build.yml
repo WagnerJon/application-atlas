@@ -36,7 +36,7 @@ jobs:
         env:
           ATLAS_BUILD_NUMBER: ${{ github.run_number }}
         run: ./scripts/release.sh
-      - name: Create draft GitHub Release
+      - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -44,5 +44,5 @@ jobs:
         run: |
           gh release create "$RELEASE_TAG" "dist/Application-Atlas-${RELEASE_TAG#v}-macOS-universal.zip" \
             dist/SHA256SUMS.txt dist/INSTALL.md dist/LICENSE \
-            --verify-tag --draft --title "Application Atlas $RELEASE_TAG" \
+            --verify-tag --title "Application Atlas $RELEASE_TAG" \
             --notes-file docs/RELEASE-NOTES.md

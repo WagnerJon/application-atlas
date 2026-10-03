@@ -13,24 +13,26 @@ import AppKit
 }
 extension Notification.Name { static let newApplication = Notification.Name("newApplication") }
 enum Page: Hashable {
-    case dashboard, all, category(String), map
+    case dashboard, all, category(String), deadlines, map
 }
 struct ContentView: View {
     @EnvironmentObject var store: ApplicationStore
     @State private var page: Page? = .dashboard
     @State private var query = ""
+    @State private var deadlineNow = Date()
     @State private var applicationSort = ApplicationSort()
     @State private var statusFilter: ApplicationStatus?
     @State private var journeyFilter: ApplicationStatus?
     @State private var editing: Application?
     @State private var deleting: Application?
     var filtered: [Application] {
-        applicationSort.ordered(store.applications.filter { application in
+        let matches = store.applications.filter { application in
             matchesCategory(application) &&
             (statusFilter == nil || application.status == statusFilter) &&
             (journeyFilter == nil || application.reached(journeyFilter!)) &&
             (query.isEmpty || "\(application.role) \(application.organization) \(application.location)".localizedCaseInsensitiveContains(query))
-        })
+        }
+        return page == .deadlines ? Application.orderedByDeadline(matches, asOf: deadlineNow) : applicationSort.ordered(matches)
     }
     private func matchesCategory(_ application: Application) -> Bool {
         if case .category(let id) = page { return application.kind.rawValue == id }
@@ -41,6 +43,7 @@ struct ContentView: View {
         case .dashboard: return "Make your next move."
         case .category(let id): return store.categoryName(ApplicationKind(rawValue: id))
         case .map: return "Map"
+        case .deadlines: return "Deadlines"
         default: return "All applications"
         }
     }
@@ -50,7 +53,7 @@ struct ContentView: View {
         else { application.kind = store.categories.first?.kind ?? .job }
         editing = application
     }
-    var body: some View {
+    private var splitView: some View {
         NavigationSplitView {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(spacing: 10) {
@@ -68,6 +71,7 @@ struct ContentView: View {
                         Label { Text(category.name) } icon: { CategoryIconView(icon: category.effectiveIcon) }
                             .lineLimit(1).help(category.name).padding(.vertical, 7).tag(Page.category(category.id))
                     }
+                    Label("Deadlines", systemImage: "calendar.badge.clock").padding(.vertical, 7).tag(Page.deadlines)
                     Label("Map", systemImage: "map").padding(.vertical, 7).tag(Page.map)
                 }.listStyle(.sidebar)
                 VStack(alignment: .leading, spacing: 8) {
@@ -85,7 +89,7 @@ struct ContentView: View {
                     HStack(alignment: .center) {
                         VStack(alignment: .leading, spacing: 7) {
                             Text(pageTitle).font(.system(size: 30, weight: .bold, design: .rounded))
-                            Text(page == .dashboard ? "A clear view of where you are, and what’s ahead." : "Every opportunity has a place here.").foregroundStyle(.secondary)
+                            Text(page == .dashboard ? "A clear view of where you are, and what’s ahead." : page == .deadlines ? "Upcoming deadlines, closest first. Past deadlines follow below." : "Every opportunity has a place here.").foregroundStyle(.secondary)
                         }
                         Spacer()
                         Button { newApplication() } label: { Label("New application", systemImage: "plus").padding(.vertical, 5) }.buttonStyle(.borderedProminent)
@@ -106,7 +110,7 @@ struct ContentView: View {
                     }
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
-                            Text(page == .dashboard ? "Your applications" : "Application ledger").font(.title3.weight(.semibold))
+                            Text(page == .dashboard ? "Your applications" : page == .deadlines ? "Applications with deadlines" : "Application ledger").font(.title3.weight(.semibold))
                             Text("\(filtered.count)").font(.caption.bold()).padding(.horizontal, 8).padding(.vertical, 4).background(.quaternary, in: Capsule())
                             Spacer()
                             Picker("Status", selection: $statusFilter) {
@@ -126,9 +130,24 @@ struct ContentView: View {
                             }.font(.caption)
                         }
                         if filtered.isEmpty {
+                            if page == .deadlines {
+                                ContentUnavailableView("No applications with deadlines", systemImage: "calendar", description: Text("Add a deadline in an application’s details, or clear the search and status filter."))
+                            } else {
                             ContentUnavailableView(store.applications.isEmpty ? "Room for your next opportunity" : "No matching applications", systemImage: "tray", description: Text(store.applications.isEmpty ? "Add a job or PhD application, record the date, and keep your letters close." : "Try another search or status filter."))
+                            }
                         } else {
-                            HStack { Text("OPPORTUNITY"); Spacer(); sortHeader("STATUS", field: .status).frame(width: 150, alignment: .leading); sortHeader("SENT", field: .sent).frame(width: 92, alignment: .leading); Color.clear.frame(width: 30, height: 1) }.font(.system(size: 10, weight: .semibold, design: .monospaced)).foregroundStyle(.secondary).padding(.horizontal, 12)
+                            HStack {
+                                Text("OPPORTUNITY"); Spacer()
+                                if page == .deadlines {
+                                    Text("STATUS").frame(width: 150, alignment: .leading)
+                                    Text("DEADLINE").frame(width: 92, alignment: .leading)
+                                    Text("DAYS TILL DEADLINE").frame(width: 130, alignment: .leading)
+                                } else {
+                                    sortHeader("STATUS", field: .status).frame(width: 150, alignment: .leading)
+                                    sortHeader("SENT", field: .sent).frame(width: 92, alignment: .leading)
+                                }
+                                Color.clear.frame(width: 30, height: 1)
+                            }.font(.system(size: 10, weight: .semibold, design: .monospaced)).foregroundStyle(.secondary).padding(.horizontal, 12)
                             LazyVStack(spacing: 0) { ForEach(filtered) { application in
                                 applicationRow(application)
                                 if application.id != filtered.last?.id { Divider().padding(.leading, 58) }
@@ -141,7 +160,16 @@ struct ContentView: View {
             }
             }
         }
+    }
+    var body: some View {
+        splitView
         .toolbar { ToolbarItem(placement: .primaryAction) { SettingsMenu() } }
+        .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { deadlineNow = $0 }
+        .onChange(of: page) { old, new in
+            if old == .deadlines || new == .deadlines {
+                query = ""; statusFilter = nil; journeyFilter = nil; deadlineNow = Date()
+            }
+        }
         .onChange(of: store.restoreRevision) { _, _ in
             editing = nil; deleting = nil; page = .dashboard; query = ""; statusFilter = nil; journeyFilter = nil
         }
@@ -150,6 +178,15 @@ struct ContentView: View {
         }
         .sheet(item: $editing) { application in ApplicationEditor(application: application, isNew: !store.applications.contains { $0.id == application.id }).environmentObject(store) }
         .onReceive(NotificationCenter.default.publisher(for: .newApplication)) { _ in newApplication() }
+        .alert("Your first offer — congratulations!", isPresented: Binding(
+            get: { store.showingFirstOfferSupport && editing == nil },
+            set: { if !$0 { store.showingFirstOfferSupport = false } }
+        )) {
+            Button("Buy me a coffee") { NSWorkspace.shared.open(URL(string: "https://buymeacoffee.com/wagnerjon")!) }
+            Button("No thanks", role: .cancel) { }
+        } message: {
+            Text("That’s a big step toward your next chapter. If Application Atlas helped along the way, you can support Jonas with a coffee. It’s completely optional — all features remain free.")
+        }
         .alert("Storage issue", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) { Button("OK") { store.error = nil } } message: { Text(store.error ?? "") }
         .alert("Delete this application?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {
             Button("Cancel", role: .cancel) { deleting = nil }
@@ -198,7 +235,16 @@ struct ContentView: View {
                             }
                         }
                     }.frame(width: 150, alignment: .leading)
+                    if page == .deadlines, let days = application.daysTillDeadline(asOf: deadlineNow) {
+                        Text(application.deadline?.formatted(date: .abbreviated, time: .omitted) ?? "")
+                            .font(.caption).foregroundStyle(.secondary).frame(width: 92, alignment: .leading)
+                        Text(days == 0 ? "Due today" : days < 0 ? "Overdue by \(-days) \(days == -1 ? "day" : "days")" : "\(days) \(days == 1 ? "day" : "days") left")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(days < 0 ? Color.pink : days <= 7 ? Color.orange : Color.secondary)
+                            .frame(width: 130, alignment: .leading)
+                    } else {
                     Text(application.sentDate?.formatted(date: .abbreviated, time: .omitted) ?? "Not sent").font(.caption).foregroundStyle(.secondary).frame(width: 92, alignment: .leading)
+                    }
                 }.contentShape(Rectangle())
             }.buttonStyle(.plain)
             Menu {

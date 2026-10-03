@@ -20,6 +20,7 @@ import SwiftUI
             record.organization = "Preview University \(index + 1)"
             record.location = cities[index].name
             record.kind = index % 2 == 0 ? .job : .phd
+            if index < 3 { record.deadline = Calendar.current.date(byAdding: .day, value: [3, 0, -2][index], to: Date()) }
             record.status = .sent
             record.sentDate = Calendar.current.date(byAdding: .day, value: -14, to: Date())
             record.statusHistory = [StatusEvent(status: .sent, date: record.sentDate)]

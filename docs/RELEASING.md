@@ -19,7 +19,7 @@ Do not upload `build/`, `dist/`, personal databases, documents, exports, or back
    git push origin v1.0.0
    ```
 
-4. The workflow tests on Apple Silicon and Intel, verifies the tag matches `VERSION`, builds a universal app, and creates a **draft release** with the ZIP, SHA-256 checksum, license, and installation guide. The workflow uses GitHub's short-lived built-in token with write access only in the release job.
-5. Inspect the draft, download and test its ZIP, then click **Publish release**. A draft is intentionally not a public download until reviewed. If a draft already exists, inspect/update it rather than recreating the tag or overwriting a published release.
+4. The workflow tests on Apple Silicon and Intel, verifies the tag matches `VERSION`, builds a universal app, and publishes a **GitHub Release** with the ZIP, SHA-256 checksum, license, and installation guide. The workflow uses GitHub's short-lived built-in token with write access only in the release job.
+5. Download and verify the published ZIP. Version tags publish automatically after both test jobs pass, so complete local review before pushing a tag. If a release already exists, inspect it rather than recreating the tag or overwriting a published release.
 
 PRs and branch pushes test and build without publishing. For local packaging use `./scripts/release.sh`; output is in `dist/`. The bundle identifier stays `local.applicationatlas.mac` to preserve continuity with existing builds. Storage is independent of the identifier. Version information in About comes from the app bundle.
